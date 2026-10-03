@@ -1,0 +1,35 @@
+Source: mcp-server-wakatime
+Section: utils
+Priority: optional
+Maintainer: Vítězslav Dvořák <info@vitexsoftware.cz>
+Build-Depends: debhelper-compat (= 13),
+ dh-nodejs | pkg-js-tools,
+ nodejs (>= 20),
+ node-typescript,
+ node-modelcontextprotocol-sdk,
+ node-zod,
+ appstream
+Standards-Version: 4.7.0
+Homepage: https://github.com/Vitexus/mcp-server-wakatime
+Rules-Requires-Root: no
+
+Package: mcp-server-wakatime
+Architecture: all
+Depends: ${misc:Depends},
+ nodejs (>= 20),
+ node-modelcontextprotocol-sdk,
+ node-zod
+Description: MCP server exposing WakaTime summaries over stdio
+ Model Context Protocol server that proxies the WakaTime Summaries API
+ with your API key (WAKATIME_API_KEY) and returns the raw JSON. Provides
+ the read-only tools wakatime_summaries and wakatime_today.
+
+Package: mcprack-mcp-server-wakatime
+Architecture: all
+Depends: ${misc:Depends},
+ mcprack (>= 1.5.4),
+ mcp-server-wakatime (= ${binary:Version}),
+Description: Registers WakaTime MCP server into mcprack catalog
+ Companion package for mcp-server-wakatime. Installing it registers
+ the mcp-server-wakatime binary as an available MCP server in the local mcprack
+ instance; removing it unregisters it again.

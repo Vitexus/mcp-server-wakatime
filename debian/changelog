@@ -1,0 +1,7 @@
+mcp-server-wakatime (0.0.2) unstable; urgency=medium
+
+  * Initial Debian packaging with mcprack companion package.
+  * Rename launcher to mcp-server-wakatime (wakatime-mcp kept as symlink).
+  * Add tool titles and annotations, request timeout and output cap.
+
+ -- Vítězslav Dvořák <info@vitexsoftware.cz>  Sat, 03 Oct 2026 23:26:34 +0200

@@ -36,3 +36,10 @@ tmp/
 temp/
 output.txt
 
+debian/.debhelper/
+debian/*.debhelper.log
+debian/*.substvars
+debian/debhelper-build-stamp
+debian/files
+debian/mcp-server-wakatime/
+debian/mcprack-mcp-server-wakatime/

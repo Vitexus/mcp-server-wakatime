@@ -1,0 +1,9 @@
+{
+  "identifier": "mcp-server-wakatime",
+  "name": "WakaTime MCP Server",
+  "description": "Daily and today's coding-activity summaries from the WakaTime API",
+  "category": "productivity",
+  "prompts": [],
+  "homepage": "https://github.com/Vitexus/mcp-server-wakatime",
+  "author": "Vítězslav Dvořák <info@vitexsoftware.cz>"
+}

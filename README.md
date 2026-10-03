@@ -14,6 +14,13 @@ Key features:
 - 📊 Exposes daily summaries and today’s summary
 - 📦 Runs via `npx` (no install required)
 
+## 📦 Debian / Ubuntu install
+
+```bash
+sudo apt install mcp-server-wakatime            # server, /usr/bin/mcp-server-wakatime
+sudo apt install mcprack-mcp-server-wakatime    # optional: register in mcprack
+```
+
 ## 🚀 Quick Start (npx)
 
 ```bash
@@ -34,6 +41,8 @@ npx wakatime-mcp
 ```
 
 ## 🧰 Available Tools
+
+Annotation class of both tools: READ_ONLY (read-only, non-destructive, idempotent, open-world).
 
 ### `wakatime_summaries`
 
@@ -65,7 +74,10 @@ npx wakatime-mcp
 
 | Environment Variable | Description | Required |
 | --- | --- | --- |
-| `WAKATIME_API_KEY` | WakaTime API key | ✅ |
+| `WAKATIME_API_KEY` | WakaTime API key (secret, env only) | ✅ |
+
+Both tools are read-only, so no `*_READ_ONLY` switch exists.
+Requests time out after 30 s; responses are capped at 200k characters.
 
 ## 🧪 Tests
 

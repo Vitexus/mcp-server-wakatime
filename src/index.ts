@@ -7,7 +7,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { z } from "zod";
 
@@ -15,8 +15,24 @@ const SummariesInput = z.object({
   start: z.string().min(1), // YYYY-MM-DD
   end: z.string().min(1), // YYYY-MM-DD
   project: z.string().optional(),
-  timezone: z.string().optional(), // e.g. "Asia/Tokyo" (API側パラメータ名は tz なので後で変換)
+  timezone: z.string().optional(), // IANA name, e.g. "Europe/Prague"; mapped to the API `tz` parameter
 });
+
+const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RESPONSE_CHARS = 200_000;
+
+// Both tools only read from the WakaTime API (see MCP-SERVER-STANDARDS §1).
+export const READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
+export function readVersion(): string {
+  const pkgUrl = new URL("../package.json", import.meta.url);
+  return JSON.parse(readFileSync(pkgUrl, "utf8")).version as string;
+}
 
 function toolText(text: string) {
   return [{ type: "text", text }];
@@ -35,7 +51,7 @@ async function wakatimeGet(
   const apiKey = process.env.WAKATIME_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "環境変数 WAKATIME_API_KEY が未設定です（WakaTimeのAPI Key）。",
+      "Environment variable WAKATIME_API_KEY is not set (your WakaTime API key).",
     );
   }
 
@@ -49,13 +65,21 @@ async function wakatimeGet(
       Authorization: basicAuthHeaderFromApiKey(apiKey),
       Accept: "application/json",
     },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`WakaTime API error: ${res.status}\n${text}`);
+    throw new Error(
+      `WakaTime API error: ${res.status}\n${truncate(text, 2_000)}`,
+    );
   }
-  return text; // JSON文字列のまま返す（利用側でパースしてもOK）
+  return truncate(text, MAX_RESPONSE_CHARS); // raw JSON string
+}
+
+export function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max)}\n[truncated: ${text.length - max} more characters]`;
 }
 
 export function todayYmd(tz = "Asia/Tokyo"): string {
@@ -90,44 +114,69 @@ export function shouldRunMain(importMetaUrl: string, argv1?: string): boolean {
   }
 }
 
+export function listTools() {
+  const tzDescription =
+    "IANA timezone name, e.g. Europe/Prague (default: UTC for summaries)";
+  return [
+    {
+      name: "wakatime_summaries",
+      title: "WakaTime Daily Summaries",
+      description:
+        "Fetch daily coding-activity summaries (JSON) from the WakaTime Summaries API for a date range. Read-only.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          start: { type: "string", description: "Start date, YYYY-MM-DD" },
+          end: { type: "string", description: "End date, YYYY-MM-DD" },
+          project: { type: "string", description: "Only this project" },
+          timezone: { type: "string", description: tzDescription },
+        },
+        required: ["start", "end"],
+        additionalProperties: false,
+      },
+      annotations: { title: "WakaTime Daily Summaries", ...READ_ONLY_ANNOTATIONS },
+    },
+    {
+      name: "wakatime_today",
+      title: "WakaTime Today Summary",
+      description:
+        "Fetch today's coding-activity summary (JSON) from WakaTime. Read-only.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          project: { type: "string", description: "Only this project" },
+          timezone: {
+            type: "string",
+            description: "IANA timezone name, e.g. Europe/Prague (default: Asia/Tokyo)",
+          },
+        },
+        additionalProperties: false,
+      },
+      annotations: { title: "WakaTime Today Summary", ...READ_ONLY_ANNOTATIONS },
+    },
+  ];
+}
+
 async function main() {
+  const arg = process.argv[2];
+  if (arg === "--version" || arg === "-V") {
+    console.log(readVersion());
+    return;
+  }
+  if (arg === "--help" || arg === "-h") {
+    console.log(
+      "Usage: mcp-server-wakatime [--version|--help]\n\nMCP server (stdio) for the WakaTime Summaries API.\nEnvironment: WAKATIME_API_KEY (required)",
+    );
+    return;
+  }
+
   const server = new Server(
-    { name: "wakatime-mcp", version: "0.0.1" },
+    { name: "mcp-server-wakatime", version: readVersion() },
     { capabilities: { tools: {} } },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-      {
-        name: "wakatime_summaries",
-        description:
-          "WakaTime Summaries API を叩き、指定期間の日次サマリ(JSON)を返します。",
-        inputSchema: {
-          type: "object",
-          properties: {
-            start: { type: "string", description: "YYYY-MM-DD" },
-            end: { type: "string", description: "YYYY-MM-DD" },
-            project: { type: "string" },
-            timezone: { type: "string", description: "例: Asia/Tokyo" },
-          },
-          required: ["start", "end"],
-          additionalProperties: false,
-        },
-      },
-      {
-        name: "wakatime_today",
-        description:
-          "今日のサマリ(JSON)を返します（Asia/Tokyo をデフォルトにします）。",
-        inputSchema: {
-          type: "object",
-          properties: {
-            project: { type: "string" },
-            timezone: { type: "string", description: "例: Asia/Tokyo" },
-          },
-          additionalProperties: false,
-        },
-      },
-    ],
+    tools: listTools(),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
@@ -159,7 +208,7 @@ async function main() {
       return { content: toolText(json) };
     }
 
-    return { content: toolText(`未知の tool: ${name}`), isError: true };
+    return { content: toolText(`Unknown tool: ${name}`), isError: true };
   });
 
   await server.connect(new StdioServerTransport());

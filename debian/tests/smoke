@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+mcp-server-wakatime --version
+wakatime-mcp --help >/dev/null
+out=$(printf '%s\n%s\n%s\n' \
+ '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' \
+ '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+ '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | WAKATIME_API_KEY=x timeout 5 mcp-server-wakatime || true)
+echo "$out" | grep -q wakatime_summaries
+echo "$out" | grep -q readOnlyHint

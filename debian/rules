@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with nodejs
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+	# Debian's typescript (4.x) cannot type-check against zod 4; type-checking
+	# is done upstream (npm run build) and in CI, so only transpile here.
+	node scripts/transpile.mjs
+	node scripts/add-shebang.js
+
+override_dh_auto_test:
+	# unit tests (vitest) are not available in the build chroot; see debian/tests
+
+override_dh_auto_clean:
+	rm -rf dist
+	if [ -e node_modules/.debian-build ]; then rm -rf node_modules; fi
+
+override_dh_install:
+	install -d debian/mcp-server-wakatime/usr/share/mcp-server-wakatime
+	cp -a dist package.json debian/mcp-server-wakatime/usr/share/mcp-server-wakatime/
+	install -d debian/mcp-server-wakatime/usr/bin
+	ln -s ../share/mcp-server-wakatime/dist/index.js debian/mcp-server-wakatime/usr/bin/mcp-server-wakatime
+	ln -s mcp-server-wakatime debian/mcp-server-wakatime/usr/bin/wakatime-mcp
+	install -d debian/mcp-server-wakatime/usr/share/man/man1
+	ln -s mcp-server-wakatime.1.gz debian/mcp-server-wakatime/usr/share/man/man1/wakatime-mcp.1.gz
+	# node resolves deps from /usr/share/nodejs
+	install -d debian/mcp-server-wakatime/usr/share/mcp-server-wakatime/node_modules
+	ln -s ../../nodejs/@modelcontextprotocol debian/mcp-server-wakatime/usr/share/mcp-server-wakatime/node_modules/@modelcontextprotocol
+	for m in zod zod-to-json-schema ajv ajv-formats fast-uri fast-deep-equal json-schema-traverse; do \
+	  ln -s ../../nodejs/$$m debian/mcp-server-wakatime/usr/share/mcp-server-wakatime/node_modules/$$m; done
+	install -D -m 0644 debian/io.github.vitexus.mcp_server_wakatime.metainfo.xml \
+	  debian/mcp-server-wakatime/usr/share/metainfo/io.github.vitexus.mcp_server_wakatime.metainfo.xml
+
+override_dh_auto_install:
+	# files are installed explicitly in override_dh_install
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 debian/mcp-server-wakatime/usr/share/mcp-server-wakatime/dist/index.js

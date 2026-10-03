@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>io.github.vitexus.mcp_server_wakatime</id>
+  <name>WakaTime MCP</name>
+  <summary>MCP server exposing WakaTime coding-activity summaries</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.vitexus"><name>VitexSoftware</name></developer>
+  <description>
+    <p>Model Context Protocol server (stdio) that proxies the WakaTime Summaries API using your API key and returns daily and today's summaries as JSON.</p>
+  </description>
+  <url type="homepage">https://github.com/Vitexus/mcp-server-wakatime</url>
+  <provides><binary>mcp-server-wakatime</binary></provides>
+  <releases><release version="0.0.2" date="2026-10-03"/></releases>
+  <content_rating type="oars-1.1"/>
+</component>
