@@ -27,7 +27,7 @@ Description: MCP server exposing WakaTime summaries over stdio
 Package: mcprack-mcp-server-wakatime
 Architecture: all
 Depends: ${misc:Depends},
- mcprack (>= 1.5.4),
+ mcprack (>= 1.6.0),
  mcp-server-wakatime (= ${binary:Version}),
 Description: Registers WakaTime MCP server into mcprack catalog
  Companion package for mcp-server-wakatime. Installing it registers

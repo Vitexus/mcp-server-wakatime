@@ -8,3 +8,6 @@ out=$(printf '%s\n%s\n%s\n' \
  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | WAKATIME_API_KEY=x timeout 5 mcp-server-wakatime || true)
 echo "$out" | grep -q wakatime_summaries
 echo "$out" | grep -q readOnlyHint
+
+# MCP-level smoke via the mcprack CLI: handshake + tools/resources/prompts list
+WAKATIME_API_KEY=dummy mcprack server probe /usr/bin/mcp-server-wakatime
